@@ -1,0 +1,146 @@
+services:
+  ##############################################
+  #  PLEX MEDIA SERVER                         #
+  ##############################################
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host # Use host network
+    domainname: plex.local
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+      - VERSION=docker
+      - PLEX_CLAIM=xxxxxxx
+    volumes:
+      - /path/to/data/folder/docker/appdata/plex/config:/config # Path to config files
+      - /path/to/data/folder/plex/series:/tv # Path to TV Shows
+      - /path/to/data/folder/plex/movies:/movies # Path to Movies
+    restart: unless-stopped
+
+  ##############################################
+  #  RADARR MOVIE AUTO DOWNLOAD FROM TORRENT   #
+  ##############################################
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+    volumes:
+      - /path/to/data/folder/docker/appdata/radarr/config:/config
+      - /path/to/data/folder/plex/movies:/movies # Path to Movies
+      - /path/to/data/folder/docker/appdata/qbittorrent/downloads:/downloads # Path to download client downloads (qBittorrent)
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  ##############################################
+  # SONARR SERIES AUTO DOWNLOAD FROM TORRENT   #
+  ##############################################
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+    volumes:
+      - /path/to/data/folder/docker/appdata/sonarr_fixed/config:/config
+      - /path/to/data/folder/plex/series:/tv
+      - /path/to/data/folder/docker/appdata/qbittorrent/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  ##############################################
+  #  QBITORRENT CLIENT                         #
+  ##############################################
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    volumes:
+      - /path/to/data/folder/docker/appdata/qbittorrent/config:/config
+      - /path/to/data/folder/docker/appdata/qbittorrent/downloads:/downloads # Path to download client downloads
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+
+  ##############################################
+  # PROWLARR INDEXER                           #
+  ##############################################
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+    volumes:
+      - /path/to/data/folder/docker/appdata/prowlarr/config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  ##############################################
+  # BAZARR SUBTITLES                           #
+  ##############################################
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Athens
+    volumes:
+      - /path/to/data/folder/docker/appdata/bazarr/config:/config
+      - /path/to/data/folder/plex/movies:/movies
+      - /path/to/data/folder/plex/series:/tv
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
+  ##############################################
+  # FLARESOLVERR CLOUDFLARE BYPASS PROXY       #
+  ##############################################
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+      - TZ=Europe/Athens
+    ports:
+      - "${PORT:-8191}:8191"
+    restart: unless-stopped
+
+  ##############################################
+  # OVERSEER MEDIA REQUESTS                    #
+  ##############################################
+  overseerr:
+    image: sctx/overseerr:latest
+    container_name: overseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Europe/Athens
+      - PORT=5055 #optional
+    ports:
+      - 5055:5055
+    volumes:
+      - /path/to/data/folder/docker/appdata/overseerr/config:/app/config
+    restart: unless-stopped
